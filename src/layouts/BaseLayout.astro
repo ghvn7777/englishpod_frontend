@@ -17,7 +17,7 @@ const { title, description = 'Podcast Website' } = Astro.props;
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>{title}</title>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
+<body class="bg-gray-50 min-h-screen font-sans flex flex-col">
   <header class="bg-white shadow-sm sticky top-0 z-10">
     <nav class="max-w-6xl mx-auto px-4 py-4">
       <a href="/" class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
@@ -25,10 +25,10 @@ const { title, description = 'Podcast Website' } = Astro.props;
       </a>
     </nav>
   </header>
-  <main class="max-w-6xl mx-auto px-4 py-8">
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
     <slot />
   </main>
-  <footer class="bg-white border-t border-gray-200 mt-auto">
+  <footer class="bg-white border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-6 text-center text-gray-500 text-sm">
       Podcast Website
     </div>
