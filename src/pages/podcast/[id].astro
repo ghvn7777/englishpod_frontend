@@ -269,19 +269,29 @@ const defaultTrack = podcast.tracks[0];
             const activeSegment = segments[activeIndex] as HTMLElement;
             activeSegment.classList.add('!bg-blue-100', '!border-l-blue-500');
 
-            // Auto-scroll: position active segment at second to last line from bottom
+            // Auto-scroll only when segment is at or below the bottom of visible area
             const container = transcriptContainer as HTMLElement;
-            const segmentTop = activeSegment.offsetTop;
-            const segmentHeight = activeSegment.offsetHeight;
-            const containerHeight = container.clientHeight;
+            const containerRect = container.getBoundingClientRect();
+            const segmentRect = activeSegment.getBoundingClientRect();
+            const segmentHeight = segmentRect.height;
+            const containerHeight = containerRect.height;
 
-            // Scroll so segment appears near bottom (leave room for ~1 segment below)
-            const targetScroll = segmentTop - containerHeight + segmentHeight + segmentHeight;
+            // Check if segment is at bottom or out of view
+            const segmentRelativeTop = segmentRect.top - containerRect.top;
+            const segmentBottom = segmentRect.bottom - containerRect.top;
+            const isAtBottom = segmentBottom > containerHeight - segmentHeight;
+            const isOutOfView = segmentRelativeTop < 0 || segmentBottom > containerHeight;
 
-            container.scrollTo({
-              top: Math.max(0, targetScroll),
-              behavior: 'smooth'
-            });
+            if (isAtBottom || isOutOfView) {
+              // Scroll to position segment at second to last line from bottom
+              const targetPosition = containerHeight - 2 * segmentHeight;
+              const scrollDelta = segmentRelativeTop - targetPosition;
+
+              container.scrollTo({
+                top: Math.max(0, container.scrollTop + scrollDelta),
+                behavior: 'smooth'
+              });
+            }
           }
 
           currentSegmentIndex = activeIndex;
