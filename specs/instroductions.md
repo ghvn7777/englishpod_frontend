@@ -4,3 +4,7 @@
 ---
 
 remove footer and increase Summary, Transcript container and text.
+
+# improve
+1. refresh web can memory audio progress
+2. scroll page, mp3 components auto move to bottom

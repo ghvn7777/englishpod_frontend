@@ -65,8 +65,8 @@ const defaultTrack = podcast.tracks[0];
         <p class="text-gray-700 text-lg leading-relaxed">{track.transcript.summary}</p>
       </div>
 
-      <!-- Audio Player -->
-      <div class="mb-6">
+      <!-- Audio Player (sticky at bottom when scrolling) -->
+      <div class="audio-player-wrapper mb-6" data-player-wrapper={track.id}>
         <AudioPlayer trackId={track.id} audioPath={track.audioPath} />
       </div>
 
@@ -138,6 +138,18 @@ const defaultTrack = podcast.tracks[0];
     return minutes * 60 + seconds;
   }
 
+  // Get podcast ID from URL
+  function getPodcastId(): string {
+    const path = window.location.pathname;
+    const match = path.match(/\/podcast\/([^/]+)/);
+    return match ? match[1] : '';
+  }
+
+  // LocalStorage key for saving progress
+  function getStorageKey(trackId: string): string {
+    return `podcast_${getPodcastId()}_${trackId}_progress`;
+  }
+
   function initAudioPlayers() {
     const players = document.querySelectorAll('.audio-player');
 
@@ -160,8 +172,50 @@ const defaultTrack = podcast.tracks[0];
 
       const transcriptContainer = document.querySelector(`[data-transcript-for="${trackId}"]`);
       const segments = transcriptContainer?.querySelectorAll('.transcript-segment') || [];
+      const wrapper = document.querySelector(`[data-player-wrapper="${trackId}"]`) as HTMLElement;
 
       let currentSegmentIndex = -1;
+
+      // Restore saved progress from localStorage
+      const storageKey = getStorageKey(trackId);
+      const savedProgress = localStorage.getItem(storageKey);
+
+      function restoreProgress() {
+        if (savedProgress && audio.duration) {
+          const savedTime = parseFloat(savedProgress);
+          if (savedTime > 0 && savedTime < audio.duration) {
+            audio.currentTime = savedTime;
+            // Update UI
+            const progress = (savedTime / audio.duration) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressHandle.style.left = `${progress}%`;
+            currentTimeEl.textContent = formatTime(savedTime);
+          }
+        }
+        durationEl.textContent = formatTime(audio.duration);
+      }
+
+      // Check if metadata already loaded (for cached audio)
+      if (audio.readyState >= 1) {
+        restoreProgress();
+      }
+
+      audio.addEventListener('loadedmetadata', restoreProgress);
+
+      // Save progress to localStorage periodically
+      audio.addEventListener('timeupdate', () => {
+        if (!audio.duration) return;
+        const progress = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = `${progress}%`;
+        progressHandle.style.left = `${progress}%`;
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+
+        // Save progress every update
+        localStorage.setItem(storageKey, audio.currentTime.toString());
+
+        // Highlight current transcript segment
+        highlightCurrentSegment(audio.currentTime);
+      });
 
       // Play/Pause toggle
       playBtn.addEventListener('click', () => {
@@ -180,22 +234,6 @@ const defaultTrack = podcast.tracks[0];
       audio.addEventListener('pause', () => {
         playIcon.classList.remove('hidden');
         pauseIcon.classList.add('hidden');
-      });
-
-      // Time update - real-time progress
-      audio.addEventListener('timeupdate', () => {
-        if (!audio.duration) return;
-        const progress = (audio.currentTime / audio.duration) * 100;
-        progressBar.style.width = `${progress}%`;
-        progressHandle.style.left = `${progress}%`;
-        currentTimeEl.textContent = formatTime(audio.currentTime);
-
-        // Highlight current transcript segment
-        highlightCurrentSegment(audio.currentTime);
-      });
-
-      audio.addEventListener('loadedmetadata', () => {
-        durationEl.textContent = formatTime(audio.duration);
       });
 
       // Click on progress bar to seek
@@ -300,15 +338,78 @@ const defaultTrack = podcast.tracks[0];
     });
   }
 
+  // Sticky audio player on scroll
+  function initStickyPlayer() {
+    const wrappers = document.querySelectorAll('.audio-player-wrapper');
+
+    wrappers.forEach(wrapper => {
+      const wrapperEl = wrapper as HTMLElement;
+      const player = wrapperEl.querySelector('.audio-player') as HTMLElement;
+      if (!player) return;
+
+      // Create placeholder for when player becomes fixed
+      const placeholder = document.createElement('div');
+      placeholder.style.display = 'none';
+      wrapperEl.insertBefore(placeholder, player);
+
+      let isSticky = false;
+
+      function checkSticky() {
+        const rect = wrapperEl.getBoundingClientRect();
+        const trackContent = wrapperEl.closest('.track-content');
+        const isVisible = trackContent && !trackContent.classList.contains('hidden');
+
+        if (!isVisible) {
+          // Reset if tab is hidden
+          if (isSticky) {
+            player.classList.remove('fixed', 'bottom-0', 'left-0', 'right-0', 'z-50', 'shadow-lg', 'border-t', 'border-gray-200');
+            player.style.maxWidth = '';
+            placeholder.style.display = 'none';
+            document.body.style.paddingBottom = '';
+            isSticky = false;
+          }
+          return;
+        }
+
+        const shouldBeSticky = rect.bottom < 0 || rect.top > window.innerHeight;
+
+        if (shouldBeSticky && !isSticky) {
+          // Make sticky
+          const playerHeight = player.offsetHeight;
+          placeholder.style.height = `${playerHeight}px`;
+          placeholder.style.display = 'block';
+          player.classList.add('fixed', 'bottom-0', 'left-0', 'right-0', 'z-50', 'shadow-lg', 'border-t', 'border-gray-200');
+          player.style.maxWidth = '100%';
+          // Add bottom padding to body to prevent content being covered
+          document.body.style.paddingBottom = `${playerHeight}px`;
+          isSticky = true;
+        } else if (!shouldBeSticky && isSticky) {
+          // Remove sticky
+          player.classList.remove('fixed', 'bottom-0', 'left-0', 'right-0', 'z-50', 'shadow-lg', 'border-t', 'border-gray-200');
+          document.body.style.paddingBottom = '';
+          player.style.maxWidth = '';
+          placeholder.style.display = 'none';
+          isSticky = false;
+        }
+      }
+
+      window.addEventListener('scroll', checkSticky, { passive: true });
+      window.addEventListener('resize', checkSticky, { passive: true });
+      checkSticky();
+    });
+  }
+
   // Initialize on page load
   document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initAudioPlayers();
+    initStickyPlayer();
   });
 
   // Also initialize on Astro page transitions
   document.addEventListener('astro:page-load', () => {
     initTabs();
     initAudioPlayers();
+    initStickyPlayer();
   });
 </script>
