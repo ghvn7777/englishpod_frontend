@@ -18,23 +18,23 @@ const emotionStyles: Record<string, string> = {
 const borderStyle = emotionStyles[segment.emotion] || emotionStyles.neutral;
 ---
 <div
-  class={`transcript-segment p-3 rounded-r border-l-4 cursor-pointer hover:bg-blue-50 transition-colors ${borderStyle}`}
+  class={`transcript-segment p-4 rounded-r border-l-4 cursor-pointer hover:bg-blue-50 transition-colors ${borderStyle}`}
   data-timestamp={segment.timestamp}
   data-index={index}
 >
-  <div class="flex items-center gap-2 mb-1 flex-wrap">
-    <span class="timestamp-link text-xs font-mono text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded">
+  <div class="flex items-center gap-2 mb-2 flex-wrap">
+    <span class="timestamp-link text-sm font-mono text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded">
       {segment.timestamp}
     </span>
-    <span class="text-sm font-medium text-gray-700">{segment.speaker}</span>
+    <span class="text-base font-medium text-gray-700">{segment.speaker}</span>
     {segment.language_code !== 'en' && (
-      <span class="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded">
+      <span class="text-sm px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
         {segment.language}
       </span>
     )}
   </div>
-  <p class="text-gray-800 text-base leading-relaxed">{segment.content}</p>
+  <p class="text-gray-800 text-lg leading-relaxed">{segment.content}</p>
   {segment.translation && (
-    <p class="text-gray-500 text-base italic mt-1">{segment.translation}</p>
+    <p class="text-gray-500 text-lg italic mt-2">{segment.translation}</p>
   )}
 </div>
