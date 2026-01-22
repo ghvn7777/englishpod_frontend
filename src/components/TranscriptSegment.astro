@@ -1,0 +1,40 @@
+---
+import type { TranscriptSegment } from '../types/podcast';
+
+interface Props {
+  segment: TranscriptSegment;
+  index: number;
+}
+
+const { segment, index } = Astro.props;
+
+const emotionStyles: Record<string, string> = {
+  neutral: 'border-l-gray-300',
+  happy: 'border-l-green-400 bg-green-50/50',
+  sad: 'border-l-blue-400 bg-blue-50/50',
+  angry: 'border-l-red-400 bg-red-50/50'
+};
+
+const borderStyle = emotionStyles[segment.emotion] || emotionStyles.neutral;
+---
+<div
+  class={`transcript-segment p-3 rounded-r border-l-4 cursor-pointer hover:bg-blue-50 transition-colors ${borderStyle}`}
+  data-timestamp={segment.timestamp}
+  data-index={index}
+>
+  <div class="flex items-center gap-2 mb-1 flex-wrap">
+    <span class="timestamp-link text-xs font-mono text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded">
+      {segment.timestamp}
+    </span>
+    <span class="text-sm font-medium text-gray-700">{segment.speaker}</span>
+    {segment.language_code !== 'en' && (
+      <span class="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded">
+        {segment.language}
+      </span>
+    )}
+  </div>
+  <p class="text-gray-800 text-sm leading-relaxed">{segment.content}</p>
+  {segment.translation && (
+    <p class="text-gray-500 text-sm italic mt-1">{segment.translation}</p>
+  )}
+</div>
