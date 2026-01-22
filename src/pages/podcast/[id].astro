@@ -487,14 +487,25 @@ const defaultTrack = podcast.tracks[0];
         dgTab.click();
       }
 
-      // Auto-play dg track after a short delay
-      setTimeout(() => {
-        const dgAudio = document.querySelector('#audio-dg') as HTMLAudioElement;
-        if (dgAudio) {
+      // Auto-play dg track - wait for audio to be ready
+      const dgAudio = document.querySelector('#audio-dg') as HTMLAudioElement;
+      if (dgAudio) {
+        const tryPlay = () => {
           dgAudio.currentTime = 0;
-          dgAudio.play();
+          dgAudio.play().catch(() => {
+            // If autoplay blocked, try again on user interaction
+            console.log('Autoplay blocked, waiting for user interaction');
+          });
+        };
+
+        // If audio is already loaded, play immediately
+        if (dgAudio.readyState >= 2) {
+          tryPlay();
+        } else {
+          // Wait for audio to be ready
+          dgAudio.addEventListener('canplay', tryPlay, { once: true });
         }
-      }, 200);
+      }
     }
   }
 
