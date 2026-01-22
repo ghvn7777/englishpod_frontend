@@ -6,12 +6,14 @@ import { getAllPodcasts, getPodcastById } from '../../lib/podcasts';
 
 export async function getStaticPaths() {
   const podcasts = await getAllPodcasts();
-  return podcasts.map(podcast => ({
-    params: { id: podcast.id }
+  return podcasts.map((podcast, index) => ({
+    params: { id: podcast.id },
+    props: { nextPodcastId: podcasts[index + 1]?.id || null }
   }));
 }
 
 const { id } = Astro.params;
+const { nextPodcastId } = Astro.props;
 const podcast = await getPodcastById(id!);
 
 if (!podcast) {
@@ -96,15 +98,30 @@ const defaultTrack = podcast.tracks[0];
   ))}
 </BaseLayout>
 
+<script define:vars={{ nextPodcastId }}>
+  window.__NEXT_PODCAST_ID__ = nextPodcastId;
+</script>
+
 <script>
   // Tab switching functionality
+  function getTabStorageKey(): string {
+    const podcastId = getPodcastId();
+    return `podcast_${podcastId}_active_tab`;
+  }
+
   function initTabs() {
     const tabs = document.querySelectorAll('.track-tab');
     const contents = document.querySelectorAll('.track-content');
+    const tabStorageKey = getTabStorageKey();
 
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const trackId = (tab as HTMLElement).dataset.track;
+
+        // Save selected tab to localStorage
+        if (trackId) {
+          localStorage.setItem(tabStorageKey, trackId);
+        }
 
         // Update tab styles
         tabs.forEach(t => {
@@ -124,6 +141,15 @@ const defaultTrack = podcast.tracks[0];
         });
       });
     });
+
+    // Restore saved tab on page load
+    const savedTab = localStorage.getItem(tabStorageKey);
+    if (savedTab) {
+      const tabToSelect = document.querySelector(`.track-tab[data-track="${savedTab}"]`) as HTMLElement;
+      if (tabToSelect) {
+        tabToSelect.click();
+      }
+    }
   }
 
   // Audio player functionality
@@ -203,6 +229,7 @@ const defaultTrack = podcast.tracks[0];
       audio.addEventListener('loadedmetadata', restoreProgress);
 
       // Save progress to localStorage periodically
+      let lastSavedTime = -1;
       audio.addEventListener('timeupdate', () => {
         if (!audio.duration) return;
         const progress = (audio.currentTime / audio.duration) * 100;
@@ -210,8 +237,12 @@ const defaultTrack = podcast.tracks[0];
         progressHandle.style.left = `${progress}%`;
         currentTimeEl.textContent = formatTime(audio.currentTime);
 
-        // Save progress every update
-        localStorage.setItem(storageKey, audio.currentTime.toString());
+        // Save progress in real-time (skip saving 0 to avoid overwriting on auto-play start)
+        // Only save if time changed by at least 0.5s to reduce writes
+        if (audio.currentTime > 0.5 && Math.abs(audio.currentTime - lastSavedTime) >= 0.5) {
+          localStorage.setItem(storageKey, audio.currentTime.toString());
+          lastSavedTime = audio.currentTime;
+        }
 
         // Highlight current transcript segment
         highlightCurrentSegment(audio.currentTime);
@@ -234,6 +265,50 @@ const defaultTrack = podcast.tracks[0];
       audio.addEventListener('pause', () => {
         playIcon.classList.remove('hidden');
         pauseIcon.classList.add('hidden');
+        // Save progress on pause to capture exact position
+        if (audio.currentTime > 0.5) {
+          localStorage.setItem(storageKey, audio.currentTime.toString());
+        }
+      });
+
+      // Auto-play next track when current one ends
+      const trackOrder = ['dg', 'pb', 'rv'];
+      audio.addEventListener('ended', () => {
+        const currentIndex = trackOrder.indexOf(trackId);
+        if (currentIndex < trackOrder.length - 1) {
+          // Play next track in same episode
+          const nextTrackId = trackOrder[currentIndex + 1];
+
+          // Clear saved progress for next track so it starts fresh
+          const nextStorageKey = getStorageKey(nextTrackId);
+          localStorage.removeItem(nextStorageKey);
+
+          // Switch to next tab
+          const nextTab = document.querySelector(`.track-tab[data-track="${nextTrackId}"]`) as HTMLElement;
+          if (nextTab) {
+            nextTab.click();
+
+            // Play next audio after a short delay for tab switch
+            setTimeout(() => {
+              const nextAudio = document.querySelector(`#audio-${nextTrackId}`) as HTMLAudioElement;
+              if (nextAudio) {
+                nextAudio.currentTime = 0;
+                nextAudio.play();
+              }
+            }, 100);
+          }
+        } else {
+          // Last track (rv) ended, go to next podcast episode
+          const nextPodcastId = (window as any).__NEXT_PODCAST_ID__;
+          if (nextPodcastId) {
+            // Set flag to auto-play dg on next page
+            localStorage.setItem('autoplay_next_podcast', 'true');
+            // Clear progress for next podcast's dg track
+            localStorage.removeItem(`podcast_${nextPodcastId}_dg_progress`);
+            // Navigate to next podcast
+            window.location.href = `/podcast/${nextPodcastId}`;
+          }
+        }
       });
 
       // Click on progress bar to seek
@@ -399,11 +474,36 @@ const defaultTrack = podcast.tracks[0];
     });
   }
 
+  // Check for auto-play flag from previous podcast
+  function checkAutoPlayFromPreviousPodcast() {
+    const autoplayFlag = localStorage.getItem('autoplay_next_podcast');
+    if (autoplayFlag === 'true') {
+      // Clear the flag
+      localStorage.removeItem('autoplay_next_podcast');
+
+      // Make sure dg tab is selected
+      const dgTab = document.querySelector('.track-tab[data-track="dg"]') as HTMLElement;
+      if (dgTab) {
+        dgTab.click();
+      }
+
+      // Auto-play dg track after a short delay
+      setTimeout(() => {
+        const dgAudio = document.querySelector('#audio-dg') as HTMLAudioElement;
+        if (dgAudio) {
+          dgAudio.currentTime = 0;
+          dgAudio.play();
+        }
+      }, 200);
+    }
+  }
+
   // Initialize on page load
   document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initAudioPlayers();
     initStickyPlayer();
+    checkAutoPlayFromPreviousPodcast();
   });
 
   // Also initialize on Astro page transitions
@@ -411,5 +511,6 @@ const defaultTrack = podcast.tracks[0];
     initTabs();
     initAudioPlayers();
     initStickyPlayer();
+    checkAutoPlayFromPreviousPodcast();
   });
 </script>

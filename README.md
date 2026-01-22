@@ -2,6 +2,8 @@
 
 A podcast website built with Astro and Tailwind CSS. Features audio playback with real-time progress tracking and clickable transcripts.
 
+[English](README.md) | [中文](README-CN.md)
+
 ## Features
 
 - **Podcast Cards**: Homepage displays podcast cards with title and summary
@@ -11,9 +13,12 @@ A podcast website built with Astro and Tailwind CSS. Features audio playback wit
 - **Real-time Highlighting**: Current transcript segment auto-highlights during playback
 - **Smart Auto-scroll**: Transcript scrolls when active segment reaches bottom
 - **Progress Memory**: Audio progress saved to localStorage, restored on page refresh
+- **Tab Memory**: Remembers selected track tab (dg/pb/rv) on page refresh
 - **Sticky Player**: Audio player sticks to bottom when scrolling
-- **Search**: Search podcasts by title and summary
+- **Search**: Search podcasts by title and vocabulary summary
 - **Emotion Colors**: Transcript segments color-coded by emotion (neutral, happy, sad, angry)
+- **Auto-play Next Track**: Automatically plays next track (dg → pb → rv) when current track ends
+- **Auto-play Next Episode**: When last track (rv) ends, navigates to next episode and auto-plays
 
 ## Project Structure
 
@@ -43,7 +48,7 @@ A podcast website built with Astro and Tailwind CSS. Features audio playback wit
 │   │   └── podcast.ts       # TypeScript interfaces
 │   └── styles/
 │       └── global.css
-└── specs/                  # Project specifications
+└── specs/                   # Project specifications
 ```
 
 ## Data Format
@@ -66,6 +71,14 @@ Each podcast folder contains MP3 files with corresponding JSON transcripts:
   ]
 }
 ```
+
+### Track Types
+
+| Suffix | Label | Description |
+|:-------|:------|:------------|
+| `dg` | Dialogue | Main conversation/dialogue |
+| `pb` | Vocabulary | Vocabulary explanations |
+| `rv` | Review | Review and summary |
 
 ## Getting Started
 
