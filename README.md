@@ -1,62 +1,116 @@
-# Astro Starter Kit: Blog
+# Podcast Website
 
-```sh
-yarn create astro@latest -- --template blog
+A podcast website built with Astro and Tailwind CSS. Features audio playback with real-time progress tracking and clickable transcripts.
+
+## Features
+
+- **Podcast Cards**: Homepage displays podcast cards with title and summary
+- **Multiple Tracks**: Each podcast supports multiple audio tracks (Dialogue, Vocabulary, Review)
+- **Audio Player**: Custom audio player with play/pause, progress bar, volume control
+- **Clickable Transcripts**: Click any timestamp to jump to that position in the audio
+- **Real-time Highlighting**: Current transcript segment auto-highlights during playback
+- **Smart Auto-scroll**: Transcript scrolls when active segment reaches bottom
+- **Progress Memory**: Audio progress saved to localStorage, restored on page refresh
+- **Sticky Player**: Audio player sticks to bottom when scrolling
+- **Search**: Search podcasts by title and summary
+- **Emotion Colors**: Transcript segments color-coded by emotion (neutral, happy, sad, angry)
+
+## Project Structure
+
 ```
-
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-Features:
-
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and OpenGraph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
 ├── public/
+│   └── resources/          # Podcast data (MP3 + JSON per track)
+│       ├── 60/
+│       │   ├── englishpod_C0060dg.mp3
+│       │   ├── englishpod_C0060dg.json
+│       │   └── ...
+│       └── 78/
+│           └── ...
 ├── src/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
-├── astro.config.mjs
-├── README.md
-├── package.json
-└── tsconfig.json
+│   ├── components/
+│   │   ├── AudioPlayer.astro
+│   │   ├── PodcastCard.astro
+│   │   └── TranscriptSegment.astro
+│   ├── layouts/
+│   │   └── BaseLayout.astro
+│   ├── lib/
+│   │   └── podcasts.ts      # Data loading utilities
+│   ├── pages/
+│   │   ├── index.astro      # Homepage
+│   │   └── podcast/
+│   │       └── [id].astro   # Podcast detail page
+│   ├── types/
+│   │   └── podcast.ts       # TypeScript interfaces
+│   └── styles/
+│       └── global.css
+└── specs/                  # Project specifications
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Data Format
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Each podcast folder contains MP3 files with corresponding JSON transcripts:
 
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
+```json
+{
+  "summary": "Description of the podcast content",
+  "segments": [
+    {
+      "speaker": "Speaker 1",
+      "timestamp": "00:08",
+      "content": "Transcript text...",
+      "language": "English",
+      "language_code": "en",
+      "translation": null,
+      "emotion": "neutral"
+    }
+  ]
+}
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Getting Started
 
-## 🧞 Commands
+### Prerequisites
 
-All commands are run from the root of the project, from a terminal:
+- Node.js 18+
+- Yarn or npm
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `yarn install`             | Installs dependencies                            |
-| `yarn dev`             | Starts local dev server at `localhost:4321`      |
-| `yarn build`           | Build your production site to `./dist/`          |
-| `yarn preview`         | Preview your build locally, before deploying     |
-| `yarn astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `yarn astro -- --help` | Get help using the Astro CLI                     |
+### Installation
 
-## 👀 Want to learn more?
+```bash
+# Install dependencies
+yarn install
 
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+# Start development server
+yarn dev
+```
 
-## Credit
+Open http://localhost:4321 to view the website.
 
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+### Build
+
+```bash
+# Build for production
+yarn build
+
+# Preview production build
+yarn preview
+```
+
+## Commands
+
+| Command | Action |
+|:--------|:-------|
+| `yarn install` | Install dependencies |
+| `yarn dev` | Start dev server at `localhost:4321` |
+| `yarn build` | Build production site to `./dist/` |
+| `yarn preview` | Preview build locally |
+
+## Tech Stack
+
+- [Astro](https://astro.build) - Static site generator
+- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS
+- [TypeScript](https://www.typescriptlang.org) - Type safety
+
+## License
+
+MIT

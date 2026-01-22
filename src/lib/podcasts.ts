@@ -2,7 +2,7 @@ import type { Podcast, AudioTrack, TranscriptData } from '../types/podcast';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const RESOURCES_DIR = 'resources';
+const RESOURCES_DIR = 'public/resources';
 
 const TRACK_LABELS: Record<string, string> = {
   dg: 'Dialogue',
@@ -68,7 +68,7 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
     tracks.push({
       id: trackType,
       label: TRACK_LABELS[trackType] || trackType.toUpperCase(),
-      audioPath: `/${RESOURCES_DIR}/${id}/${mp3File}`,
+      audioPath: `/resources/${id}/${mp3File}`,
       transcript: transcriptData
     });
   }
