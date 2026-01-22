@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { getAllPodcasts } from '../lib/podcasts';
 
 interface Props {
   title: string;
@@ -7,6 +8,17 @@ interface Props {
 }
 
 const { title, description = 'Podcast Website' } = Astro.props;
+
+// Get podcasts for search (use vocabulary/pb track summary)
+const podcasts = await getAllPodcasts();
+const searchData = podcasts.map(p => {
+  const pbTrack = p.tracks.find(t => t.id === 'pb');
+  return {
+    id: p.id,
+    title: p.title,
+    summary: pbTrack?.transcript.summary || p.tracks[0]?.transcript.summary || ''
+  };
+});
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -18,13 +30,89 @@ const { title, description = 'Podcast Website' } = Astro.props;
   <title>{title}</title>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans flex flex-col">
-  <header class="bg-white shadow-sm sticky top-0 z-10">
-    <nav class="max-w-6xl mx-auto px-4 py-4">
-      <a href="/" class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
+  <header class="bg-white shadow-sm sticky top-0 z-20">
+    <nav class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <a href="/" class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors shrink-0">
         Podcasts
       </a>
+
+      <!-- Search Bar -->
+      <div class="relative flex-1 max-w-md">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search podcasts..."
+          class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+
+        <!-- Search Results Dropdown -->
+        <div id="search-results" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-80 overflow-y-auto z-50">
+        </div>
+      </div>
     </nav>
   </header>
+
+  <script define:vars={{ searchData }}>
+    window.__SEARCH_DATA__ = searchData;
+  </script>
+
+  <script>
+    function initSearch() {
+      const searchInput = document.getElementById('search-input') as HTMLInputElement;
+      const searchResults = document.getElementById('search-results') as HTMLElement;
+      const searchData = (window as any).__SEARCH_DATA__ || [];
+
+      if (!searchInput || !searchResults) return;
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase().trim();
+
+        if (!query) {
+          searchResults.classList.add('hidden');
+          return;
+        }
+
+        const results = searchData.filter((item: any) =>
+          item.title.toLowerCase().includes(query) ||
+          item.summary.toLowerCase().includes(query)
+        );
+
+        if (results.length === 0) {
+          searchResults.innerHTML = '<div class="p-4 text-gray-500 text-center">No results found</div>';
+        } else {
+          searchResults.innerHTML = results.map((item: any) => `
+            <a href="/podcast/${item.id}" class="block p-4 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+              <div class="font-medium text-gray-900">${item.title}</div>
+              <div class="text-sm text-gray-500 line-clamp-2 mt-1">${item.summary}</div>
+            </a>
+          `).join('');
+        }
+
+        searchResults.classList.remove('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target as Node) && !searchResults.contains(e.target as Node)) {
+          searchResults.classList.add('hidden');
+        }
+      });
+
+      // Close dropdown on escape
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchResults.classList.add('hidden');
+          searchInput.blur();
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initSearch);
+    document.addEventListener('astro:page-load', initSearch);
+  </script>
   <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
     <slot />
   </main>
